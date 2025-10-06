@@ -1,36 +1,39 @@
-import { useState } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState } from "react";
+import { useRouter } from "next/router";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const router = useRouter();
+  const [password, setPassword] = useState("");
+  const hardcodedPassword = "demo123"; // single demo password
 
-  async function submit(e: React.FormEvent) {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/auth/login', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (res.ok) {
-      const j = await res.json();
-      localStorage.setItem('authToken', j.token);
-      localStorage.setItem('encSalt', j.encSalt);
-      localStorage.setItem('encIterations', String(j.encIterations));
-      router.push('/');
+    if (password === hardcodedPassword) {
+      localStorage.setItem("authToken", "demo"); // dummy token
+      router.push("/vault");
     } else {
-      alert('login failed');
+      alert("Wrong password!");
     }
-  }
+  };
 
   return (
-    <div style={{maxWidth:600, margin:'40px auto'}}>
-      <h2>Login</h2>
-      <form onSubmit={submit}>
-        <label>Email<br/><input value={email} onChange={e=>setEmail(e.target.value)} /></label><br/>
-        <label>Password<br/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" /></label><br/>
-        <button type="submit">Log in</button>
+    <div style={{ maxWidth: 400, margin: "100px auto", textAlign: "center" }}>
+      <h1>Password Vault Demo</h1>
+      <form onSubmit={handleLogin}>
+        <input
+          type="password"
+          placeholder="Enter demo password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: 8, width: "100%", marginBottom: 10 }}
+        />
+        <button type="submit" style={{ padding: 8, width: "100%" }}>
+          Login
+        </button>
       </form>
+      <p>
+        Use password: <strong>{hardcodedPassword}</strong>
+      </p>
     </div>
   );
 }

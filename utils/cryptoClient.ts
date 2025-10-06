@@ -1,36 +1,53 @@
-export async function deriveKeyFromPassword(password: string, saltB64: string, iterations: number) {
-  const enc = new TextEncoder();
-  const pwKey = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
-  const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations,
-      hash: 'SHA-256'
-    },
-    pwKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-  return key;
-}
-
 export async function encryptJson(key: CryptoKey, data: any) {
+  const str = JSON.stringify(data);
+  const enc = new TextEncoder().encode(str);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const plaintext = enc.encode(JSON.stringify(data));
-  const ciphertextBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
-  const ciphertextB64 = btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)));
-  const ivB64 = btoa(String.fromCharCode(...iv));
-  return { ciphertext: ciphertextB64, iv: ivB64 };
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    enc
+  );
+  return {
+    ciphertext: Array.from(new Uint8Array(ciphertext)),
+    iv: Array.from(iv),
+  };
 }
 
-export async function decryptJson(key: CryptoKey, ciphertextB64: string, ivB64: string) {
-  const ct = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
-  const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
-  const decBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  const dec = new TextDecoder().decode(decBuf);
-  return JSON.parse(dec);
+export async function decryptJson(
+  key: CryptoKey,
+  cipherArr: number[],
+  ivArr: number[]
+) {
+  const cipher = new Uint8Array(cipherArr);
+  const iv = new Uint8Array(ivArr);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    cipher
+  );
+  const str = new TextDecoder().decode(decrypted);
+  return JSON.parse(str);
+}
+
+export async function deriveKeyFromPassword(password: string) {
+  const enc = new TextEncoder().encode(password);
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc,
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: new TextEncoder().encode("demoSalt"),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
 }
